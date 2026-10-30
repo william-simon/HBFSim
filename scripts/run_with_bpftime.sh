@@ -61,6 +61,7 @@ BPFTIME_PROVENANCE="$HBFSIM_BPFTIME_BUILD_DIR/hbfsim-bpftime.provenance"
 BPFTIME_PATCH="$HBFSIM_ROOT/patches/bpftime/0001-exact-module-load-provenance.patch"
 BPFTIME_COMPATIBILITY_PATCH="$HBFSIM_ROOT/patches/bpftime/0002-ptx-target-compatibility-and-diagnostics.patch"
 BPFTIME_PASS_LOADER_PATCH="$HBFSIM_ROOT/patches/bpftime/0003-ordinary-ptx-pass-default-namespace.patch"
+BPFTIME_PTX_VERSION_PATCH="$HBFSIM_ROOT/patches/bpftime/0004-ordinary-merged-ptx-highest-version.patch"
 if [[ -n ${HBFSIM_SASS_BUILD_MANIFEST:-} ]]; then
     if [[ -n ${LD_PRELOAD:-} || -n ${HBFSIM_TARGET_EXTRA_LD_PRELOAD:-} ||
           ${HBFSIM_TARGET_CUDART12_PRELOAD:-} != /* ||
@@ -88,12 +89,14 @@ mapfile -t provenance < "$BPFTIME_PROVENANCE"
 expected_digest=$(sha256sum "$BPFTIME_PATCH" | awk '{print $1}')
 compatibility_digest=$(sha256sum "$BPFTIME_COMPATIBILITY_PATCH" | awk '{print $1}')
 pass_loader_digest=$(sha256sum "$BPFTIME_PASS_LOADER_PATCH" | awk '{print $1}')
-if [[ ${#provenance[@]} -ne 5 ||
+ptx_version_digest=$(sha256sum "$BPFTIME_PTX_VERSION_PATCH" | awk '{print $1}')
+if [[ ${#provenance[@]} -ne 6 ||
       ${provenance[0]:-} != bpftime_commit=ec26daecc8e787fb80fd95dd596a576404a5e36e ||
       ${provenance[1]:-} != patch_sha256="$expected_digest" ||
       ${provenance[2]:-} != compatibility_patch_sha256="$compatibility_digest" ||
       ${provenance[3]:-} != pass_loader_patch_sha256="$pass_loader_digest" ||
-      ${provenance[4]:-} != bridge_version=4 ]]; then
+      ${provenance[4]:-} != ptx_version_patch_sha256="$ptx_version_digest" ||
+      ${provenance[5]:-} != bridge_version=5 ]]; then
     echo "run_with_bpftime: bpftime build provenance mismatch: $BPFTIME_PROVENANCE" >&2
     exit 66
 fi

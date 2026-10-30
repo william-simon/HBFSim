@@ -83,7 +83,7 @@ There are three build paths. Choose the one matching the component you need:
 
 | Build path | Source changes | How the run checks the build |
 |---|---|---|
-| Ordinary public agent | Pinned bpftime, `0001-exact-module-load-provenance.patch`, `0002-ptx-target-compatibility-and-diagnostics.patch`, then `0003-ordinary-ptx-pass-default-namespace.patch` | `run_with_bpftime.sh` checks the builder's five-line provenance file (`bridge_version=4`) |
+| Ordinary public agent | Pinned bpftime, `0001-exact-module-load-provenance.patch`, `0002-ptx-target-compatibility-and-diagnostics.patch`, `0003-ordinary-ptx-pass-default-namespace.patch`, then `0004-ordinary-merged-ptx-highest-version.patch` | `run_with_bpftime.sh` checks the builder's six-line provenance file (`bridge_version=5`) |
 | Supported-weights agent | Pinned bpftime, the frozen `0002-supported-weights-from-ec26.patch`, then `0003-supported-weights-ptx-compatibility.patch` | The reproduction script records and verifies the prepared source and build |
 | Optional SASS research agent/provider | Explicit source inputs plus the generated switch-aware copies | A separate research build manifest records the actual sources, successful build commands and selected libraries |
 

@@ -72,6 +72,7 @@ def require_dirty_refusal(
     patch = helper.parent.parent / "patches/bpftime/0001-exact-module-load-provenance.patch"
     compatibility = helper.parent.parent / "patches/bpftime/0002-ptx-target-compatibility-and-diagnostics.patch"
     pass_loader = helper.parent.parent / "patches/bpftime/0003-ordinary-ptx-pass-default-namespace.patch"
+    ptx_version = helper.parent.parent / "patches/bpftime/0004-ordinary-merged-ptx-highest-version.patch"
     prepared = subprocess.run(
         [
             real_cmake,
@@ -79,6 +80,7 @@ def require_dirty_refusal(
             f"-DPATCH={patch}",
             f"-DCOMPATIBILITY_PATCH={compatibility}",
             f"-DPASS_LOADER_PATCH={pass_loader}",
+            f"-DPTX_VERSION_PATCH={ptx_version}",
             f"-DOUTPUT_SOURCE={output_source}",
             "-P", str(prepare),
         ],
@@ -117,7 +119,8 @@ def copy_test_layout(
         isolated_patch,
     )
     for chained_name in ("0002-ptx-target-compatibility-and-diagnostics.patch",
-                         "0003-ordinary-ptx-pass-default-namespace.patch"):
+                         "0003-ordinary-ptx-pass-default-namespace.patch",
+                         "0004-ordinary-merged-ptx-highest-version.patch"):
         shutil.copy2(helper.parent.parent / "patches/bpftime" / chained_name,
                      isolated_patch.parent / chained_name)
     revision = subprocess.run(
@@ -164,7 +167,8 @@ def run_isolated_worker(
                 f"isolated helper reported wrong result: {checked.stdout}")
 
         for chained_name in ("0002-ptx-target-compatibility-and-diagnostics.patch",
-                             "0003-ordinary-ptx-pass-default-namespace.patch"):
+                             "0003-ordinary-ptx-pass-default-namespace.patch",
+                             "0004-ordinary-merged-ptx-highest-version.patch"):
             chained = isolated_helper.parent.parent / "patches/bpftime" / chained_name
             original_patch = chained.read_bytes()
             chained.write_bytes(b"not a patch\n")

@@ -381,6 +381,15 @@ if(BUILD_TESTING)
             "${CMAKE_CURRENT_SOURCE_DIR}/third_party/bpftime"
             "${CMAKE_CURRENT_SOURCE_DIR}/cmake/PreparePatchedBpftime.cmake"
     )
+    add_test(
+        NAME bpftime_merged_ptx_version
+        COMMAND
+            "${HBFSIM_PYTHON3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/test_bpftime_merged_ptx_version.py"
+            --hbfsim-root "${CMAKE_CURRENT_SOURCE_DIR}"
+            --cxx "${CMAKE_CXX_COMPILER}"
+            --cmake "${CMAKE_COMMAND}"
+    )
 
     add_executable(
         coverage_manifest_flow_test

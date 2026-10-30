@@ -44,8 +44,9 @@ The older `scripts/build_patched_bpftime.sh`
 belongs to the pre-integration patch profile and is not this build entry.
 
 That ordinary builder has its own ordered `0001`,
-`0002-ptx-target-compatibility-and-diagnostics.patch` and
-`0003-ordinary-ptx-pass-default-namespace.patch` profile. The two profiles
+`0002-ptx-target-compatibility-and-diagnostics.patch`,
+`0003-ordinary-ptx-pass-default-namespace.patch` and
+`0004-ordinary-merged-ptx-highest-version.patch` profile. The two profiles
 preserve different binding implementations and must not be combined. Both use
 the same PTX metadata rules. The compatibility fix preserves higher PTX versions
 and required target suffixes; it does not rewrite kernel instructions.
@@ -56,8 +57,17 @@ libc, whose pthread key table is separate while thread-specific values are
 shared, so OpenSSL in the pass can read another library's value as its own
 state: `SHA256` crashed with OpenSSL 3.0.13 (Ubuntu 24.04) and returned null
 with OpenSSL 3.5.5 (Ubuntu 26.04) once the process had set thread-specific
-values. The builder stamps `bridge_version=4` with the patch's SHA-256, and
-`run_with_bpftime.sh` rejects older `dlmopen` builds. The supported-weights
+values.
+
+The ordinary `0004` patch makes bpftime's merged PTX module declare the highest
+`.version` of its parts. bpftime prepends its trampoline (`.version 8.1`) to the
+pass output and kept only the first header, so on targets whose minimum PTX
+version is below 8.3 (for example sm_89) the module declared 8.1 while the
+device helper from nvcc 12.8 needs 8.3 (`used_bytes_mask`), and nvPTXCompiler
+rejected it. The `bpftime_merged_ptx_version` test checks the merge on the CPU.
+
+The builder stamps `bridge_version=5` with the SHA-256 of each patch, and
+`run_with_bpftime.sh` rejects older builds. The supported-weights
 profile still loads passes with `dlmopen`. To check an environment, run the
 `pass_loader_probe` test (`ctest -R pass_loader_probe --output-on-failure`); it
 requires the patched loader to work and reports whether `dlmopen` fails there.
