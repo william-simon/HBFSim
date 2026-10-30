@@ -116,23 +116,27 @@ def main() -> int:
         compatibility_digest = hashlib.sha256(compatibility.read_bytes()).hexdigest()
         pass_loader = patch.with_name("0003-ordinary-ptx-pass-default-namespace.patch")
         pass_loader_digest = hashlib.sha256(pass_loader.read_bytes()).hexdigest()
+        ptx_version = patch.with_name("0004-ordinary-merged-ptx-highest-version.patch")
+        ptx_version_digest = hashlib.sha256(ptx_version.read_bytes()).hexdigest()
         stamp = bpftime_build / "hbfsim-bpftime.provenance"
 
         def write_stamp(stamp_commit: str, stamp_digest: str,
                         version: str, compatibility_sha: str = compatibility_digest,
-                        pass_loader_sha: str = pass_loader_digest) -> None:
+                        pass_loader_sha: str = pass_loader_digest,
+                        ptx_version_sha: str = ptx_version_digest) -> None:
             stamp.write_text(
                 f"bpftime_commit={stamp_commit}\n"
                 f"patch_sha256={stamp_digest}\n"
                 f"compatibility_patch_sha256={compatibility_sha}\n"
                 f"pass_loader_patch_sha256={pass_loader_sha}\n"
+                f"ptx_version_patch_sha256={ptx_version_sha}\n"
                 f"bridge_version={version}\n"
             )
 
         for label, stamp_commit, stamp_digest, version in (
-            ("commit", "0" * 40, digest, "4"),
-            ("digest", commit, "0" * 64, "4"),
-            ("version", commit, digest, "3"),
+            ("commit", "0" * 40, digest, "5"),
+            ("digest", commit, "0" * 64, "5"),
+            ("version", commit, digest, "4"),
         ):
             write_stamp(stamp_commit, stamp_digest, version)
             rejected_stamp = subprocess.run(
@@ -147,13 +151,13 @@ def main() -> int:
             require(not loader_started.exists(),
                     f"wrapper started loader before rejecting wrong {label}")
 
-        write_stamp(commit, digest, "4", "0" * 64)
+        write_stamp(commit, digest, "5", "0" * 64)
         stale_compatibility = subprocess.run(
             [str(wrapper), "--", str(command), str(output)],
             env=env, text=True, capture_output=True)
         require(stale_compatibility.returncode == 66 and not loader_started.exists(),
                 "wrapper accepted stale compatibility patch provenance")
-        write_stamp(commit, digest, "4", pass_loader_sha="0" * 64)
+        write_stamp(commit, digest, "5", pass_loader_sha="0" * 64)
         stale_pass_loader = subprocess.run(
             [str(wrapper), "--", str(command), str(output)],
             env=env, text=True, capture_output=True)
@@ -168,7 +172,23 @@ def main() -> int:
             env=env, text=True, capture_output=True)
         require(old_agent.returncode == 66 and not loader_started.exists(),
                 "wrapper accepted a version-3 dlmopen agent")
-        write_stamp(commit, digest, "4")
+        write_stamp(commit, digest, "5", ptx_version_sha="0" * 64)
+        stale_ptx_version = subprocess.run(
+            [str(wrapper), "--", str(command), str(output)],
+            env=env, text=True, capture_output=True)
+        require(stale_ptx_version.returncode == 66 and not loader_started.exists(),
+                "wrapper accepted stale PTX-version patch provenance")
+        # A version-4 agent keeps the trampoline's lower PTX version; its stamp is rejected.
+        stamp.write_text(
+            f"bpftime_commit={commit}\npatch_sha256={digest}\n"
+            f"compatibility_patch_sha256={compatibility_digest}\n"
+            f"pass_loader_patch_sha256={pass_loader_digest}\nbridge_version=4\n")
+        version4_agent = subprocess.run(
+            [str(wrapper), "--", str(command), str(output)],
+            env=env, text=True, capture_output=True)
+        require(version4_agent.returncode == 66 and not loader_started.exists(),
+                "wrapper accepted a version-4 agent")
+        write_stamp(commit, digest, "5")
         invalid_sass = env.copy()
         invalid_sass["HBFSIM_ENABLE_SASS_LIFTER"] = "invalid"
         invalid_switch = subprocess.run(
