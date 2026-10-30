@@ -1,6 +1,7 @@
 if(NOT IS_ABSOLUTE "${BPFTIME_SOURCE}" OR
    NOT IS_ABSOLUTE "${PATCH}" OR
    NOT IS_ABSOLUTE "${COMPATIBILITY_PATCH}" OR
+   NOT IS_ABSOLUTE "${PASS_LOADER_PATCH}" OR
    NOT IS_ABSOLUTE "${OUTPUT_SOURCE}")
     message(FATAL_ERROR "bpftime source, patch, and output must be absolute")
 endif()
@@ -56,7 +57,7 @@ file(
 )
 
 get_filename_component(output_parent "${OUTPUT_SOURCE}" DIRECTORY)
-foreach(patch_file IN ITEMS "${PATCH}" "${COMPATIBILITY_PATCH}")
+foreach(patch_file IN ITEMS "${PATCH}" "${COMPATIBILITY_PATCH}" "${PASS_LOADER_PATCH}")
 if(NOT EXISTS "${patch_file}")
     message(FATAL_ERROR "bpftime patch missing: ${patch_file}")
 endif()
@@ -86,4 +87,4 @@ if(NOT apply_result EQUAL 0)
     message(FATAL_ERROR "bpftime patch application failed: ${apply_error}")
 endif()
 endforeach()
-message(STATUS "bpftime provenance and compatibility patches applied to clean source copy")
+message(STATUS "bpftime provenance, compatibility and pass-loader patches applied to clean source copy")

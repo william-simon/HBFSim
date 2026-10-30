@@ -28,7 +28,8 @@ std::string future_contract_json(const std::string& original_sha256,
 std::string future_contract_identity(const std::string& contract)
 {
     unsigned char digest[SHA256_DIGEST_LENGTH];
-    SHA256(reinterpret_cast<const unsigned char*>(contract.data()),contract.size(),digest);
+    if (SHA256(reinterpret_cast<const unsigned char*>(contract.data()),contract.size(),digest)==nullptr)
+        throw std::runtime_error("OpenSSL SHA256 failed");
     std::ostringstream out;out<<std::hex<<std::setfill('0');
     for (auto byte:digest) out<<std::setw(2)<<static_cast<unsigned>(byte);
     return out.str();

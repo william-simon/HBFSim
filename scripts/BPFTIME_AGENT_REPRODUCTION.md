@@ -43,11 +43,24 @@ lock profile first; changing the paths is not equivalent to this tested build.
 The older `scripts/build_patched_bpftime.sh`
 belongs to the pre-integration patch profile and is not this build entry.
 
-That ordinary builder has its own ordered `0001` plus
-`0002-ptx-target-compatibility-and-diagnostics.patch` profile. The two profiles
+That ordinary builder has its own ordered `0001`,
+`0002-ptx-target-compatibility-and-diagnostics.patch` and
+`0003-ordinary-ptx-pass-default-namespace.patch` profile. The two profiles
 preserve different binding implementations and must not be combined. Both use
 the same PTX metadata rules. The compatibility fix preserves higher PTX versions
 and required target suffixes; it does not rewrite kernel instructions.
+
+The ordinary `0003` patch loads PTX passes with `dlopen` and `RTLD_DEEPBIND`
+instead of `dlmopen(LM_ID_NEWLM)`. In a new link namespace the pass gets its own
+libc, whose pthread key table is separate while thread-specific values are
+shared, so OpenSSL in the pass can read another library's value as its own
+state: `SHA256` crashed with OpenSSL 3.0.13 (Ubuntu 24.04) and returned null
+with OpenSSL 3.5.5 (Ubuntu 26.04) once the process had set thread-specific
+values. The builder stamps `bridge_version=4` with the patch's SHA-256, and
+`run_with_bpftime.sh` rejects older `dlmopen` builds. The supported-weights
+profile still loads passes with `dlmopen`. To check an environment, run the
+`pass_loader_probe` test (`ctest -R pass_loader_probe --output-on-failure`); it
+requires the patched loader to work and reports whether `dlmopen` fails there.
 
 Prepare a **new** source/build directory after this change. Old preparation
 receipts remain historical evidence and are not accepted as a build of the new

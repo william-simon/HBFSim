@@ -1,0 +1,21 @@
+diff --git a/attach/nv_attach_impl/nv_attach_impl.cpp b/attach/nv_attach_impl/nv_attach_impl.cpp
+index 48182f3..7b90bc9 100644
+--- a/attach/nv_attach_impl/nv_attach_impl.cpp
++++ b/attach/nv_attach_impl/nv_attach_impl.cpp
+@@ -531,8 +531,14 @@ nv_attach_impl::nv_attach_impl()
+ 	auto paths = split_by_colon(ptx_pass_libraries);
+ 	for (const auto &path : paths) {
+ 		SPDLOG_INFO("Found path: {}, executing..", path.c_str());
+-		void *handle = dlmopen(LM_ID_NEWLM, path.c_str(),
+-				       RTLD_NOW | RTLD_LOCAL);
++		// A new link namespace gets its own libc, whose pthread key
++		// table is separate while thread-specific values stay shared,
++		// so OpenSSL in a pass can read another library's value as its
++		// own state. Load passes in the default namespace instead, as
++		// 2dbab79 did for the PTX compiler; RTLD_DEEPBIND keeps each
++		// pass's own symbols bound inside the pass.
++		void *handle = dlopen(path.c_str(),
++				      RTLD_NOW | RTLD_LOCAL | RTLD_DEEPBIND);
+ 		if (!handle) {
+ 			SPDLOG_ERROR(
+ 				"Unable to load dynamic library of pass {}: {}",

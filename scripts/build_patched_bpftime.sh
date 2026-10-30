@@ -5,6 +5,7 @@ HBFSIM_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 BPFTIME_SOURCE="$HBFSIM_ROOT/third_party/bpftime"
 BPFTIME_PATCH="$HBFSIM_ROOT/patches/bpftime/0001-exact-module-load-provenance.patch"
 BPFTIME_COMPATIBILITY_PATCH="$HBFSIM_ROOT/patches/bpftime/0002-ptx-target-compatibility-and-diagnostics.patch"
+BPFTIME_PASS_LOADER_PATCH="$HBFSIM_ROOT/patches/bpftime/0003-ordinary-ptx-pass-default-namespace.patch"
 BPFTIME_COMMIT=ec26daecc8e787fb80fd95dd596a576404a5e36e
 
 actual_commit=$(git -C "$BPFTIME_SOURCE" rev-parse HEAD)
@@ -30,6 +31,7 @@ if [[ ${1:-} == --check ]]; then
     trap 'rm -rf -- "$check_root"' EXIT
     cmake -DBPFTIME_SOURCE="$BPFTIME_SOURCE" -DPATCH="$BPFTIME_PATCH" \
         -DCOMPATIBILITY_PATCH="$BPFTIME_COMPATIBILITY_PATCH" \
+        -DPASS_LOADER_PATCH="$BPFTIME_PASS_LOADER_PATCH" \
         -DOUTPUT_SOURCE="$check_root/bpftime-hbfsim-src" \
         -P "$HBFSIM_ROOT/cmake/PreparePatchedBpftime.cmake"
     echo "bpftime patch applies to pinned source (ordered compatibility chain)"
@@ -56,6 +58,7 @@ cmake \
     -DBPFTIME_SOURCE="$BPFTIME_SOURCE" \
     -DPATCH="$BPFTIME_PATCH" \
     -DCOMPATIBILITY_PATCH="$BPFTIME_COMPATIBILITY_PATCH" \
+    -DPASS_LOADER_PATCH="$BPFTIME_PASS_LOADER_PATCH" \
     -DOUTPUT_SOURCE="$source_copy" \
     -P "$HBFSIM_ROOT/cmake/PreparePatchedBpftime.cmake"
 
@@ -78,14 +81,15 @@ done
 
 patch_digest=$(sha256sum "$BPFTIME_PATCH" | awk '{print $1}')
 compatibility_digest=$(sha256sum "$BPFTIME_COMPATIBILITY_PATCH" | awk '{print $1}')
+pass_loader_digest=$(sha256sum "$BPFTIME_PASS_LOADER_PATCH" | awk '{print $1}')
 stamp="$build_dir/hbfsim-bpftime.provenance"
 temporary_stamp=$(mktemp "$build_dir/.hbfsim-bpftime.provenance.XXXXXX")
 cleanup() {
     rm -f -- "$temporary_stamp"
 }
 trap cleanup EXIT
-printf 'bpftime_commit=%s\npatch_sha256=%s\ncompatibility_patch_sha256=%s\nbridge_version=3\n' \
-    "$BPFTIME_COMMIT" "$patch_digest" "$compatibility_digest" > "$temporary_stamp"
+printf 'bpftime_commit=%s\npatch_sha256=%s\ncompatibility_patch_sha256=%s\npass_loader_patch_sha256=%s\nbridge_version=4\n' \
+    "$BPFTIME_COMMIT" "$patch_digest" "$compatibility_digest" "$pass_loader_digest" > "$temporary_stamp"
 mv -f -- "$temporary_stamp" "$stamp"
 trap - EXIT
 echo "build_patched_bpftime: wrote $stamp"
