@@ -953,6 +953,17 @@ if(HBFSIM_ENABLE_MQSIM)
             mqsim_benchmark
             PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
         )
+        add_test(
+            NAME mqsim_channel_transfer
+            COMMAND
+                "${HBFSIM_PYTHON3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/test_mqsim_channel_transfer.py"
+                "$<TARGET_FILE:hbf_mqsim_bench>"
+        )
+        set_tests_properties(
+            mqsim_channel_transfer
+            PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        )
     endif()
 endif()
 
