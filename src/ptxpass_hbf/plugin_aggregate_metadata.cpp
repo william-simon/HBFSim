@@ -582,8 +582,11 @@ constexpr std::string_view module_identity_symbol = "__hbfsim_module_identity";
 std::array<unsigned char, SHA256_DIGEST_LENGTH> sha256(const std::string& text)
 {
     std::array<unsigned char, SHA256_DIGEST_LENGTH> digest{};
-    SHA256(reinterpret_cast<const unsigned char*>(text.data()), text.size(),
-           digest.data());
+    // OpenSSL returns null on failure and leaves digest unchanged.
+    if (SHA256(reinterpret_cast<const unsigned char*>(text.data()), text.size(),
+               digest.data()) == nullptr) {
+        throw std::runtime_error("OpenSSL SHA256 failed");
+    }
     return digest;
 }
 

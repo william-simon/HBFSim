@@ -407,7 +407,8 @@ std::string embedded_device_helper_sha256()
 {
     const auto helper=embedded_device_helper();
     unsigned char hash[SHA256_DIGEST_LENGTH];
-    SHA256(reinterpret_cast<const unsigned char*>(helper.data()),helper.size(),hash);
+    if (SHA256(reinterpret_cast<const unsigned char*>(helper.data()),helper.size(),hash)==nullptr)
+        throw std::runtime_error("OpenSSL SHA256 failed");
     std::ostringstream out;out<<std::hex<<std::setfill('0');
     for (auto byte:hash) out<<std::setw(2)<<static_cast<unsigned>(byte);
     return out.str();

@@ -114,21 +114,25 @@ def main() -> int:
         digest = hashlib.sha256(patch.read_bytes()).hexdigest()
         compatibility = patch.with_name("0002-ptx-target-compatibility-and-diagnostics.patch")
         compatibility_digest = hashlib.sha256(compatibility.read_bytes()).hexdigest()
+        pass_loader = patch.with_name("0003-ordinary-ptx-pass-default-namespace.patch")
+        pass_loader_digest = hashlib.sha256(pass_loader.read_bytes()).hexdigest()
         stamp = bpftime_build / "hbfsim-bpftime.provenance"
 
         def write_stamp(stamp_commit: str, stamp_digest: str,
-                        version: str, compatibility_sha: str = compatibility_digest) -> None:
+                        version: str, compatibility_sha: str = compatibility_digest,
+                        pass_loader_sha: str = pass_loader_digest) -> None:
             stamp.write_text(
                 f"bpftime_commit={stamp_commit}\n"
                 f"patch_sha256={stamp_digest}\n"
                 f"compatibility_patch_sha256={compatibility_sha}\n"
+                f"pass_loader_patch_sha256={pass_loader_sha}\n"
                 f"bridge_version={version}\n"
             )
 
         for label, stamp_commit, stamp_digest, version in (
-            ("commit", "0" * 40, digest, "3"),
-            ("digest", commit, "0" * 64, "3"),
-            ("version", commit, digest, "2"),
+            ("commit", "0" * 40, digest, "4"),
+            ("digest", commit, "0" * 64, "4"),
+            ("version", commit, digest, "3"),
         ):
             write_stamp(stamp_commit, stamp_digest, version)
             rejected_stamp = subprocess.run(
@@ -143,13 +147,28 @@ def main() -> int:
             require(not loader_started.exists(),
                     f"wrapper started loader before rejecting wrong {label}")
 
-        write_stamp(commit, digest, "3", "0" * 64)
+        write_stamp(commit, digest, "4", "0" * 64)
         stale_compatibility = subprocess.run(
             [str(wrapper), "--", str(command), str(output)],
             env=env, text=True, capture_output=True)
         require(stale_compatibility.returncode == 66 and not loader_started.exists(),
                 "wrapper accepted stale compatibility patch provenance")
-        write_stamp(commit, digest, "3")
+        write_stamp(commit, digest, "4", pass_loader_sha="0" * 64)
+        stale_pass_loader = subprocess.run(
+            [str(wrapper), "--", str(command), str(output)],
+            env=env, text=True, capture_output=True)
+        require(stale_pass_loader.returncode == 66 and not loader_started.exists(),
+                "wrapper accepted stale pass-loader patch provenance")
+        # A version-3 agent loads PTX passes with dlmopen; its four-line stamp is rejected.
+        stamp.write_text(
+            f"bpftime_commit={commit}\npatch_sha256={digest}\n"
+            f"compatibility_patch_sha256={compatibility_digest}\nbridge_version=3\n")
+        old_agent = subprocess.run(
+            [str(wrapper), "--", str(command), str(output)],
+            env=env, text=True, capture_output=True)
+        require(old_agent.returncode == 66 and not loader_started.exists(),
+                "wrapper accepted a version-3 dlmopen agent")
+        write_stamp(commit, digest, "4")
         invalid_sass = env.copy()
         invalid_sass["HBFSIM_ENABLE_SASS_LIFTER"] = "invalid"
         invalid_switch = subprocess.run(

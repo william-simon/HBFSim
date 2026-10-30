@@ -401,6 +401,33 @@ if(BUILD_TESTING)
             "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/ptx/unsupported_pointer.ptx"
     )
 
+    # OpenSSL SHA256 where bpftime loads the PTX pass, with the patched loader and
+    # the earlier dlmopen (reported only); see tests/integration/pass_loader_probe.cpp.
+    add_library(pass_loader_probe_sha256 SHARED
+        tests/integration/pass_loader_probe_sha256.cpp)
+    target_link_libraries(pass_loader_probe_sha256 PRIVATE OpenSSL::Crypto)
+    add_executable(pass_loader_probe tests/integration/pass_loader_probe.cpp)
+    target_link_libraries(pass_loader_probe PRIVATE ${CMAKE_DL_LIBS})
+    target_include_directories(
+        pass_loader_probe
+        PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/third_party/bpftime/third_party"
+    )
+    string(SHA256 pass_loader_probe_text_sha256 "hbfsim pass loader probe")
+    file(SHA256 "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/ptx/unsupported_pointer.ptx"
+        pass_loader_probe_ptx_sha256)
+    add_test(
+        NAME pass_loader_probe
+        COMMAND
+            pass_loader_probe
+            --probe-library "$<TARGET_FILE:pass_loader_probe_sha256>"
+            --text-sha256 "${pass_loader_probe_text_sha256}"
+            --pass "$<TARGET_FILE:ptxpass_hbf_plugin>"
+            --ptx "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/ptx/unsupported_pointer.ptx"
+            --ptx-sha256 "${pass_loader_probe_ptx_sha256}"
+            --kernel unsupported_pointer
+            --work-dir "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
     add_test(
         NAME run_with_bpftime
         COMMAND
